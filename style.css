@@ -1,0 +1,35 @@
+/* Mengatur gaya dasar untuk seluruh halaman */
+body {
+    /* Menghilangkan margin dan padding default */
+    margin: 0;
+    padding: 0;
+    /* Menggunakan flexbox untuk menengahkan konten */
+    display: flex;
+    flex-direction: column; /* Menumpuk elemen secara vertikal */
+    justify-content: center;
+    align-items: center;
+    /* Memastikan body memenuhi tinggi layar */
+    height: 100vh;
+    /* Warna latar belakang yang lembut */
+    background-color: #f7f7f7;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+/* Memberi gaya pada elemen canvas */
+canvas {
+    /* Memberi border tipis berwarna abu-abu */
+    border: 2px solid #ccc;
+    /* Warna latar belakang canvas */
+    background-color: #ffffff;
+    /* Memberi sedikit bayangan agar terlihat menonjol */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px; /* Sudut yang sedikit melengkung */
+}
+
+/* Gaya untuk judul */
+h1 {
+    margin-bottom: 20px;
+    font-size: 2.5em;
+    color: #555;
+}
