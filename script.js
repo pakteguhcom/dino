@@ -27,15 +27,17 @@ const PLAYER_X_POSITION = 50;
 
 // Properti Pemain
 const PLAYER_WIDTH = 44; // Lebar disesuaikan dengan sprite baru
-const PLAYER_HEIGHT = 64; // Tinggi disesuaikan dengan sprite baru
-const PLAYER_DUCK_HEIGHT = 30; // Tinggi saat menunduk
+const PLAYER_HEIGHT = 47; // Tinggi disesuaikan dengan sprite baru
+const PLAYER_DUCK_WIDTH = 59;
+const PLAYER_DUCK_HEIGHT = 25;
 const JUMP_STRENGTH = 17;
 const GRAVITY = 0.8;
 
 // State Game
 let gameSpeed = 5;
 let score = 0;
-let isGameOver = false;
+let isGameOver = true; // Game dimulai dengan status 'over' untuk menampilkan menu
+let gameStarted = false; // Untuk melacak apakah game sudah pernah dimulai
 let obstacles = [];
 let frameCount = 0;
 let obstacleSpawnInterval = 100;
@@ -46,8 +48,9 @@ let obstacleSpawnInterval = 100;
 class Player {
     constructor() {
         this.x = PLAYER_X_POSITION;
-        this.width = PLAYER_WIDTH;
+        this.originalWidth = PLAYER_WIDTH;
         this.originalHeight = PLAYER_HEIGHT;
+        this.width = this.originalWidth;
         this.height = this.originalHeight;
         this.y = GROUND_Y - this.height;
         this.velocityY = 0;
@@ -55,28 +58,42 @@ class Player {
         this.isDucking = false;
     }
 
-    // Menggambar pemain di canvas dengan bentuk yang lebih realistis
+    // Menggambar pemain dengan gaya pixel art
     draw() {
         ctx.fillStyle = '#555';
-        const legFrame = Math.floor(frameCount / 6) % 2; // Ganti posisi kaki setiap 6 frame
+        const legFrame = Math.floor(frameCount / 5) % 2; // Ganti posisi kaki setiap 5 frame
 
         if (this.isDucking) {
-            // Gambar badan saat menunduk
-            ctx.fillRect(this.x, this.y, this.width + 10, this.height);
-            // Gambar kepala saat menunduk
-            ctx.fillRect(this.x + this.width, this.y, 20, 20);
-        } else {
-            // Gambar badan
-            ctx.fillRect(this.x, this.y, this.width, this.height - 10);
-            // Gambar kepala
-            ctx.fillRect(this.x + (this.width / 2), this.y - 10, this.width / 2, this.height / 2);
-            // Gambar kaki (animasi sederhana)
+            // Gambar saat menunduk (pixel art)
+            ctx.fillRect(this.x, this.y + 15, 15, 5);
+            ctx.fillRect(this.x + 15, this.y + 10, 5, 10);
+            ctx.fillRect(this.x + 20, this.y + 5, 25, 5);
+            ctx.fillRect(this.x + 45, this.y, 10, 10);
+            // Kaki saat menunduk
             if (legFrame === 0) {
-                ctx.fillRect(this.x + 10, this.y + this.height - 10, 10, 10); // Kaki 1
-                ctx.fillRect(this.x + 30, this.y + this.height - 20, 10, 20); // Kaki 2
+                 ctx.fillRect(this.x + 20, this.y + 20, 10, 5);
+                 ctx.fillRect(this.x + 35, this.y + 20, 10, 5);
             } else {
-                ctx.fillRect(this.x + 10, this.y + this.height - 20, 10, 20); // Kaki 1
-                ctx.fillRect(this.x + 30, this.y + this.height - 10, 10, 10); // Kaki 2
+                 ctx.fillRect(this.x + 15, this.y + 20, 10, 5);
+                 ctx.fillRect(this.x + 30, this.y + 20, 10, 5);
+            }
+        } else {
+            // Gambar saat berdiri (pixel art)
+            ctx.fillRect(this.x, this.y + 30, 15, 5);
+            ctx.fillRect(this.x + 5, this.y + 35, 10, 10);
+            ctx.fillRect(this.x + 15, this.y + 20, 5, 15);
+            ctx.fillRect(this.x + 20, this.y + 10, 15, 20);
+            ctx.fillRect(this.x + 35, this.y, 10, 15);
+            // Kaki (animasi sederhana)
+            if (this.isJumping) {
+                ctx.fillRect(this.x + 20, this.y + 30, 5, 10);
+                ctx.fillRect(this.x + 30, this.y + 30, 5, 10);
+            } else if (legFrame === 0) {
+                ctx.fillRect(this.x + 20, this.y + 30, 5, 15);
+                ctx.fillRect(this.x + 30, this.y + 30, 5, 5);
+            } else {
+                ctx.fillRect(this.x + 20, this.y + 30, 5, 5);
+                ctx.fillRect(this.x + 30, this.y + 30, 5, 15);
             }
         }
     }
@@ -103,8 +120,9 @@ class Player {
     }
     
     duck(isDucking) {
-        if (this.isJumping) return; // Tidak bisa menunduk saat melompat
+        if (this.isJumping) return;
         this.isDucking = isDucking;
+        this.width = isDucking ? PLAYER_DUCK_WIDTH : this.originalWidth;
         this.height = isDucking ? PLAYER_DUCK_HEIGHT : this.originalHeight;
         this.y = GROUND_Y - this.height;
     }
@@ -114,7 +132,7 @@ class Player {
 class Obstacle {
     constructor() {
         this.x = CANVAS_WIDTH;
-        this.isScored = false; // Untuk memastikan skor hanya bertambah sekali per rintangan
+        this.isScored = false;
     }
     update() {
         this.x -= gameSpeed;
@@ -130,31 +148,25 @@ class Cactus extends Obstacle {
         this.y = GROUND_Y - this.height;
     }
     draw() {
-        ctx.fillStyle = '#2a9d8f'; // Warna hijau kaktus
-        // Badan utama
+        ctx.fillStyle = '#2a9d8f';
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        // Lengan kaktus
         ctx.fillRect(this.x - 5, this.y + 10, 5, this.height / 2);
         ctx.fillRect(this.x + this.width, this.y + 15, 5, this.height / 2);
     }
 }
 
-// Class untuk Pterodactyl (rintangan terbang)
+// Class untuk Pterodactyl
 class Pterodactyl extends Obstacle {
     constructor() {
         super();
         this.width = 50;
         this.height = 30;
-        // Posisi terbang bisa bervariasi
         this.y = GROUND_Y - 80 - (Math.random() * 40);
     }
     draw() {
-        ctx.fillStyle = '#e76f51'; // Warna oranye
-        const wingFrame = Math.floor(frameCount / 8) % 2; // Animasi kepakan sayap
-        
-        // Badan
+        ctx.fillStyle = '#e76f51';
+        const wingFrame = Math.floor(frameCount / 8) % 2;
         ctx.fillRect(this.x + 10, this.y + 10, this.width - 20, this.height - 10);
-        // Sayap
         if (wingFrame === 0) {
             ctx.fillRect(this.x, this.y, this.width, 10);
         } else {
@@ -163,7 +175,6 @@ class Pterodactyl extends Obstacle {
     }
 }
 
-
 const player = new Player();
 
 // --- Fungsi Utama Game ---
@@ -171,8 +182,7 @@ const player = new Player();
 function spawnObstacle() {
     frameCount++;
     if (frameCount > obstacleSpawnInterval) {
-        // 30% kemungkinan spawn Pterodactyl, 70% spawn Kaktus
-        if (Math.random() < 0.3 && score > 300) { // Pterodactyl muncul setelah skor tertentu
+        if (Math.random() < 0.3 && score > 300) {
             obstacles.push(new Pterodactyl());
         } else {
             obstacles.push(new Cactus());
@@ -192,29 +202,27 @@ function detectCollision() {
             player.y + player.height > obs.y
         ) {
             isGameOver = true;
-            // Mainkan suara game over
             gameOverSound.triggerAttackRelease("C3", "0.5s");
         }
     }
 }
 
 function updateScore() {
-    let currentScore = 0;
     for (const obs of obstacles) {
         if (obs.x + obs.width < player.x && !obs.isScored) {
             obs.isScored = true;
-            score += 25; // Tambah skor setiap berhasil melewati rintangan
+            score += 25;
         }
     }
     ctx.fillStyle = '#333';
     ctx.font = '20px "Courier New", Courier, monospace';
     ctx.textAlign = 'right';
     ctx.fillText(`Score: ${score}`, CANVAS_WIDTH - 20, 30);
-    ctx.textAlign = 'center'; // Reset alignment
+    ctx.textAlign = 'center';
 }
 
 function increaseDifficulty() {
-    if (score > 0 && score % 200 === 0) {
+    if (score > 0 && score % 200 === 0 && score !== 0) {
         if (gameSpeed < 18) {
             gameSpeed += 0.5;
         }
@@ -231,11 +239,12 @@ function drawGround() {
 }
 
 function resetGame() {
+    gameStarted = true;
     isGameOver = false;
     score = 0;
     gameSpeed = 5;
     obstacles = [];
-    player.duck(false); // Pastikan tidak dalam mode menunduk
+    player.duck(false);
     player.y = GROUND_Y - player.height;
     player.velocityY = 0;
     gameLoop();
@@ -256,9 +265,33 @@ function showGameOverScreen() {
     ctx.fillText('Tekan Spasi untuk Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 }
 
+// Fungsi baru untuk menampilkan menu petunjuk
+function showInstructions() {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawGround();
+    player.draw(); // Gambar dino di posisi awal
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#333';
+    ctx.fillText('Petunjuk Permainan', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 60);
+
+    ctx.font = '18px Arial';
+    ctx.fillText('Spasi / Panah Atas  ->  Lompat', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+    ctx.fillText('Panah Bawah  ->  Menunduk', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
+    
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#e76f51';
+    ctx.fillText('Tekan Spasi untuk Mulai', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+}
+
+
 function gameLoop() {
     if (isGameOver) {
-        showGameOverScreen();
+        if(gameStarted) {
+            showGameOverScreen();
+        } else {
+            showInstructions();
+        }
         return;
     }
 
@@ -307,8 +340,4 @@ window.addEventListener('keyup', (e) => {
 });
 
 // --- Memulai Game ---
-ctx.textAlign = 'center';
-ctx.font = '20px Arial';
-ctx.fillStyle = '#555';
-ctx.fillText('Tekan Spasi untuk Mulai', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-isGameOver = true;
+gameLoop(); // Mulai game loop untuk menampilkan menu petunjuk
